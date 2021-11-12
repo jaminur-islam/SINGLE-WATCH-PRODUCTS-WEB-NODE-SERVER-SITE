@@ -25,6 +25,13 @@ const run = async () => {
     const orderCollection = database.collection("orders");
     const reviewCollection = database.collection('review');
 
+    // POST products
+    app.post('/products' , async(req ,res)=>{
+      const product = req.body 
+      const result = await productCollection.insertOne(product);
+      res.send(result)
+    })
+
     // Get all products api
     app.get("/products", async (req, res) => {
       const products = await productCollection.find({}).toArray();
@@ -40,12 +47,49 @@ const run = async () => {
       res.send(result);
     });
 
+    // DELETE one products api
+    app.delete('/products/:id' , async(req ,res)=>{
+        const id = req.params.id;
+        const filter = {_id: Object(id)}
+        const result = await productCollection.deleteOne(filter);
+
+        res.send(result);
+    })
+
+    // GET user api
+    app.get('/user/:email' , async(req ,res)=>{
+      const email = req.params.email
+      const filter = {email : email};
+      const user = await userCollection.findOne(filter);
+      let admin = false;
+      if(user.role == "Admin"){
+        admin = true;
+      }else{
+        admin = false;
+      }
+      res.send(admin);
+    })
+
     // POST user api
     app.post("/user", async (req, res) => {
       const user = req.body;
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
+
+    // PUT single user 
+
+    app.put("/user/:email" , async(req , res)=>{
+      const email = req.params.email 
+      const filter = {email : email};
+      const updateDoc = {
+        $set:{
+          role: 'Admin'
+        }
+      }
+      const result = await userCollection.updateOne(filter , updateDoc);
+      res.send(result)
+    })
 
     // PUT user api
     app.put("/user", async (req, res) => {
