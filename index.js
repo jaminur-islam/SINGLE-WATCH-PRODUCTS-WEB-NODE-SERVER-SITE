@@ -62,7 +62,7 @@ const run = async () => {
       const filter = {email : email};
       const user = await userCollection.findOne(filter);
       let admin = false;
-      if(user.role == "Admin"){
+      if(user?.role == "Admin"){
         admin = true;
       }else{
         admin = false;
@@ -78,7 +78,6 @@ const run = async () => {
     });
 
     // PUT single user 
-
     app.put("/user/:email" , async(req , res)=>{
       const email = req.params.email 
       const filter = {email : email};
@@ -115,20 +114,38 @@ const run = async () => {
 
     // Get Order api
     app.get("/order", async (req, res) => {
-      const email = req.query.email;
+      const email = req?.query?.email;
       const filter = { userEamil: email };
-      const result = await orderCollection.find(filter).toArray();
-
+      let result
+      if(email){
+         result = await orderCollection.find(filter).toArray();
+      }else{
+        result = await orderCollection.find({}).toArray();
+      }
       res.send(result);
     });
 
-    // DELETE api
+    // PUT order api
+    app.put('/order/:id' , async(req ,res)=>{
+      const id = req.params.id;
+      const filter = {_id: Object(id)}
+      const updateDoc = {
+        $set:{
+          status: 'Approved'
+        }
+      }
+      const result = await orderCollection.updateOne(filter , updateDoc);
+      res.send(result) 
+    })
+
+    // DELETE order api
     app.delete("/order/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: Object(id) };
       const result = await orderCollection.deleteOne(filter);
       res.send(result);
     });
+
 
 
     // POST review api
@@ -143,6 +160,17 @@ const run = async () => {
     app.get('/review' , async(req , res)=>{
       const result = await reviewCollection.find({}).toArray()
       res.send(result);
+    })
+
+
+    // DELETE review api
+    app.delete('/review/:id' , async(req ,res)=>{
+        const id = req?.params?.id;
+        console.log(id)
+        const filter = {_id: Object(id)};
+        console.log(filter)
+        const result = await reviewCollection.deleteOne(filter)
+        res.send(result)
     })
 
 
