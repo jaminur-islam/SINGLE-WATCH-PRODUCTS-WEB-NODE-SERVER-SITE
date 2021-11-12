@@ -1,3 +1,4 @@
+var admin = require("firebase-admin");
 const express = require("express");
 const Object = require("mongodb").ObjectId;
 const cors = require("cors");
@@ -7,6 +8,25 @@ const port = process.env.PORT || 5000;
 // middleware
 app.use(cors());
 app.use(express.json());
+
+
+// verify user
+var serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+const verifyToken = async(req , res , next) =>{
+  if(req?.body?.headers?.authorization.startsWith('Bearer ')){
+    const token = req.body.headers.authorization.split(' ')[1];
+    try{
+      const goodUser = await admin.auth().verifyIdToken(token);
+      req.goodUserEmail = goodUser.email;
+    }catch{
+
+    }
+  }
+  next();
+}
 
 // server connect mongodb
 const { MongoClient } = require("mongodb");
@@ -24,6 +44,31 @@ const run = async () => {
     const userCollection = database.collection("users");
     const orderCollection = database.collection("orders");
     const reviewCollection = database.collection('review');
+
+   
+     // PUT single user [admin]
+     app.put("/user/:email" ,verifyToken, async(req , res)=>{
+      const requester = req.goodUserEmail;
+      const userEmail = req.params.email;
+      
+      if(requester){
+          const requesterUser = await userCollection.findOne({
+            email : requester
+          })
+          if(requesterUser.role == 'Admin'){
+            const filter = {email : userEmail};
+            const updateDoc = {
+              $set:{
+                role: 'Admin'
+              }
+            }
+            const result = await userCollection.updateOne(filter , updateDoc);
+            res.send(result)
+          }else{
+            res.status(403).send('No permission')
+          }
+      }   
+    })
 
     // POST products
     app.post('/products' , async(req ,res)=>{
@@ -76,19 +121,6 @@ const run = async () => {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
-
-    // PUT single user 
-    app.put("/user/:email" , async(req , res)=>{
-      const email = req.params.email 
-      const filter = {email : email};
-      const updateDoc = {
-        $set:{
-          role: 'Admin'
-        }
-      }
-      const result = await userCollection.updateOne(filter , updateDoc);
-      res.send(result)
-    })
 
     // PUT user api
     app.put("/user", async (req, res) => {
@@ -166,21 +198,10 @@ const run = async () => {
     // DELETE review api
     app.delete('/review/:id' , async(req ,res)=>{
         const id = req?.params?.id;
-        console.log(id)
         const filter = {_id: Object(id)};
-        console.log(filter)
         const result = await reviewCollection.deleteOne(filter)
         res.send(result)
     })
-
-
-
-
-
-
-
-
-
 
 
   } finally {
