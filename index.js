@@ -44,6 +44,7 @@ const run = async () => {
     const userCollection = database.collection("users");
     const orderCollection = database.collection("orders");
     const reviewCollection = database.collection('review');
+    const futureCollection = database.collection('futureProducts')
 
    
      // PUT single user [admin]
@@ -202,6 +203,17 @@ const run = async () => {
         const result = await reviewCollection.deleteOne(filter)
         res.send(result)
     })
+
+
+     // Get future Products
+     app.get('/futureProducts' , async(req , res)=>{
+       const cursor = futureCollection.find({});
+       const count = await cursor.count();
+       const  products = await cursor.toArray();
+       
+       res.send({count , products});
+     })
+     
 
 
   } finally {
